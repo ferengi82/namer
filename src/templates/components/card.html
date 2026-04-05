@@ -32,7 +32,13 @@
         {% endif %}
         {% if file['looked_up']['duration'] %}
             <p class="card-text mb-1">
-                <small class="text-muted">{{ file['looked_up']['duration']|seconds_to_format }}</small>
+                <small class="text-muted">Scene: {{ file['looked_up']['duration']|seconds_to_format }}</small>
+            </p>
+        {% endif %}
+        {% if 'local_duration' in file and file['local_duration'] %}
+            {% set dur_diff = (file['local_duration'] - file['looked_up']['duration'])|abs if file['looked_up']['duration'] else 0 %}
+            <p class="card-text mb-1">
+                <small class="{{ 'bg-danger text-white rounded-1 px-1' if dur_diff > 2 else 'text-muted' }}">File: {{ file['local_duration']|seconds_to_format }}</small>
             </p>
         {% endif %}
         <p class="card-text">
