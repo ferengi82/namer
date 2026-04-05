@@ -13,6 +13,7 @@
                 <th scope="col">Percentage</th>
                 <th scope="col">PHash</th>
                 <th scope="col">OSHash</th>
+                <th scope="col">Duration</th>
             {% endif %}
             {% if active_page == 'failed' %}
                 <th scope="col" data-orderable="false" data-priority="-2" class="noVis"></th>
@@ -33,6 +34,7 @@
                     <td class="col-1" data-order="{{ file['percentage'] }}">{{ '%.1f'|format(file['percentage']) }}%</td>
                     <td class="col-1" data-order="{{ file['phash'] }}">{{ file['phash'] }}</td>
                     <td class="col-1" data-order="{{ file['oshash'] }}">{{ file['oshash'] }}</td>
+                    <td class="col-1" data-order="{{ file['duration'] }}">{{ file['duration']|seconds_to_format if file['duration'] else '' }}</td>
                 {% endif %}
                 {% if active_page == 'failed' %}
                     <td class="col-2 text-end">

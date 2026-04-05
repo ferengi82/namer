@@ -158,7 +158,9 @@ class GenericWebServer:
 
     @staticmethod
     def seconds_to_format(item: int) -> str:
-        return str(datetime.timedelta(seconds=item))
+        hours, remainder = divmod(int(item), 3600)
+        minutes, seconds = divmod(remainder, 60)
+        return f'{hours:02d}:{minutes:02d}:{seconds:02d}'
 
     @staticmethod
     def strftime(item: datetime, datetime_format: str) -> str:

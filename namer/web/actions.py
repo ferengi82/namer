@@ -71,7 +71,7 @@ def command_to_file_info(command: Command, config: NamerConfig) -> Dict:
         'size': stat.st_size,
     }
 
-    percentage, phash, oshash = 0.0, '', ''
+    percentage, phash, oshash, duration = 0.0, '', '', 0
     if config and config.write_namer_failed_log and config.add_columns_from_log and sub_path:
         log_data = read_failed_log_file(sub_path, config)
         if log_data:
@@ -81,10 +81,20 @@ def command_to_file_info(command: Command, config: NamerConfig) -> Dict:
             if log_data.fileinfo and log_data.fileinfo.hashes:
                 phash = str(log_data.fileinfo.hashes.phash)
                 oshash = log_data.fileinfo.hashes.oshash
+                duration = log_data.fileinfo.hashes.duration
+
+        if not duration:
+            try:
+                probe = config.ffmpeg.ffprobe(command.target_movie_file)
+                if probe:
+                    duration = int(probe.get_format().duration)
+            except Exception:
+                pass
 
     res['percentage'] = percentage
     res['phash'] = phash
     res['oshash'] = oshash
+    res['duration'] = duration
 
     log_time = 0
     if config and config.add_complete_column and config.write_namer_failed_log and sub_path:
@@ -118,6 +128,7 @@ def metadataapi_responses_to_webui_response(responses: Dict, config: NamerConfig
         scene.update(
             {
                 'name_parts': scene_data.original_parsed_filename,
+                'local_duration': phash.duration if phash else None,
                 'looked_up': {
                     'uuid': scene_data.uuid,
                     'type': scene_data.type.value,
@@ -127,6 +138,7 @@ def metadataapi_responses_to_webui_response(responses: Dict, config: NamerConfig
                     'site': scene_data.site,
                     'network': scene_data.network,
                     'performers': scene_data.performers,
+                    'duration': scene_data.duration,
                 },
             }
         )

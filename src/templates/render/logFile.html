@@ -6,8 +6,14 @@
         {% endif %}
     {% endfor %}
 
+    {% set local_duration = none %}
+    {% if data['data']['fileinfo'] and data['data']['fileinfo']['hashes'] %}
+        {% set local_duration = data['data']['fileinfo']['hashes']['duration'] %}
+    {% endif %}
+
     {% if results %}
         {% for file in results %}
+            {% do file.update({'local_duration': local_duration}) %}
             <div class="col m-1 mb-2">
                 {% include 'components/card.html' %}
             </div>

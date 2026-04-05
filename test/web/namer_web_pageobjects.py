@@ -74,7 +74,8 @@ class SearchSelectionItem:
             wait_until_present(self.__parent.parent, By.CSS_SELECTOR, 'button.rename')
             self.__title = self.__parent.find_element(By.CLASS_NAME, 'card-title')
         self.__site = self.__parent.find_element(By.CLASS_NAME, 'card-text')
-        self.__date = self.__parent.find_element(By.CLASS_NAME, 'text-muted')
+        text_muted_elements = self.__parent.find_elements(By.CLASS_NAME, 'text-muted')
+        self.__date = text_muted_elements[-1]
         self.__performers = self.__parent.find_elements(By.CSS_SELECTOR, '.card-body .badge')
         self.__show = self.__parent.find_element(By.CSS_SELECTOR, 'a.btn-secondary')
         self.__select = self.__parent.find_element(By.CSS_SELECTOR, 'button.rename')

@@ -13,6 +13,22 @@
         <br>
     {% endif %}
 </p>
+{% set local_dur = file['local_duration'] if 'local_duration' in file and file['local_duration'] else none %}
+{% set scene_dur = file['looked_up']['duration'] if file['looked_up']['duration'] else none %}
+{% if local_dur or scene_dur %}
+<p>
+    <span><b>Duration:</b></span>
+    <br>
+    {% if local_dur %}
+        <span><b>File:</b> {{ local_dur|seconds_to_format }}</span>
+        <br>
+    {% endif %}
+    {% if scene_dur %}
+        <span><b>Scene:</b> {{ scene_dur|seconds_to_format }}</span>
+        <br>
+    {% endif %}
+</p>
+{% endif %}
 <p>
     <span><b>Site Match:</b> {{ bool_to_icon(file['site_match']) }}</span>
     <br>
