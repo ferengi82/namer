@@ -1,4 +1,7 @@
 {% if file['file'] %}
+    <button type="button" class="btn btn-success play" data-bs-toggle="modal" data-bs-target="#videoPlayer" data-file="{{ file['file'] }}" data-name="{{ file['name'] }}" title="Play">
+        <i class="bi bi-play-fill"></i>
+    </button>
     {% if config.write_namer_failed_log %}
         <button type="button" class="btn btn-secondary log" data-bs-toggle="modal" data-bs-target="#logFile" data-file="{{ file['file'] }}" title="Show Log">
             <i class="bi bi-info-circle"></i>

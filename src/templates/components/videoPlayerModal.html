@@ -1,0 +1,16 @@
+<div id="videoPlayer" class="modal fade" tabindex="-1" aria-labelledby="modalVideoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-fullscreen-lg-down modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="modalVideoLabel" class="modal-title text-truncate">Video <span></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="ratio ratio-16x9">
+                    <video id="videoPlayerEl" controls preload="metadata" class="w-100"></video>
+                </div>
+                <div id="videoPlayerError" class="alert alert-danger d-none m-3"></div>
+            </div>
+        </div>
+    </div>
+</div>

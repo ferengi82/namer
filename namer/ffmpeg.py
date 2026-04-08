@@ -319,6 +319,9 @@ class FFMpeg:
     def ffmpeg_version(self) -> Dict:
         return self.__ffmpeg_version(self.__local_dir)
 
+    def get_ffmpeg_cmd(self) -> str:
+        return self.__ffmpeg_cmd
+
     @staticmethod
     def __ffmpeg_version(local_dir: Optional[Path] = None) -> Dict:
         tools = ['ffmpeg', 'ffprobe']

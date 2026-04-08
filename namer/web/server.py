@@ -22,7 +22,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from namer.configuration import NamerConfig
 from namer.configuration_utils import from_str_list_lower
 from namer.videophash import ImageHash
-from namer.web.routes import api, web
+from namer.web.routes import api, stream, web
 
 
 class GenericWebServer:
@@ -178,6 +178,7 @@ class NamerWebServer(GenericWebServer):
         blueprints = [
             web.get_routes(self.__namer_config, self.__command_queue),
             api.get_routes(self.__namer_config, self.__command_queue),
+            stream.get_routes(self.__namer_config),
         ]
 
         super().__init__(self.__namer_config.host, self.__namer_config.port, webroot, blueprints)

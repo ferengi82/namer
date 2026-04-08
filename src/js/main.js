@@ -33,6 +33,9 @@ const deleteFile = $('#deleteFile')
 const queueSize = $('#queueSize')
 const refreshFiles = $('#refreshFiles')
 const deleteButton = $('#deleteButton')
+const videoPlayerModal = $('#videoPlayer')
+const logFilePlayBtn = $('#logFilePlayBtn')
+const searchResultsPlayBtn = $('#searchResultsPlayBtn')
 
 let modalButton
 
@@ -48,6 +51,7 @@ searchButton.on('click', function () {
   const title = escape(`(${data.file}) [${data.query}]`)
   resultFormTitle.html(title)
   resultFormTitle.attr('title', title)
+  showSearchResultsPlayBtn(data.file)
 
   Helpers.request('./api/v1/get_search', data, function (data) {
     Helpers.render('searchResults', data, resultForm, function (selector) {
@@ -67,6 +71,7 @@ phashButton.on('click', function () {
   const title = escape(`(${data.file})`)
   resultFormTitle.html(title)
   resultFormTitle.attr('title', title)
+  showSearchResultsPlayBtn(data.file)
 
   Helpers.request('./api/v1/get_phash', data, function (data) {
     Helpers.render('searchResults', data, resultForm, function (selector) {
@@ -100,6 +105,7 @@ filesResult.on('click', '.log', function () {
 
   logFormTitle.html(title)
   logFormTitle.attr('title', title)
+  showLogFilePlayBtn(data.file)
 
   Helpers.request('./api/v1/read_failed_log', data, function (data) {
     Helpers.render('logFile', data, logForm, function (selector) {
@@ -107,6 +113,72 @@ filesResult.on('click', '.log', function () {
     })
   })
 })
+
+filesResult.on('click', '.play', function () {
+  const file = $(this).data('file')
+  const name = $(this).data('name')
+  openVideoPlayer(file, name)
+})
+
+logFilePlayBtn.on('click', function () {
+  openVideoPlayer($(this).data('file'), $(this).data('file'))
+})
+
+searchResultsPlayBtn.on('click', function () {
+  openVideoPlayer($(this).data('file'), $(this).data('file'))
+})
+
+videoPlayerModal.on('hidden.bs.modal', function () {
+  const videoEl = document.getElementById('videoPlayerEl')
+  if (videoEl) {
+    videoEl.pause()
+    videoEl.removeAttribute('src')
+    videoEl.load()
+  }
+  const errorEl = document.getElementById('videoPlayerError')
+  if (errorEl) {
+    errorEl.classList.add('d-none')
+    errorEl.textContent = ''
+  }
+})
+
+function openVideoPlayer (file, name) {
+  if (!file) {
+    return
+  }
+  const videoEl = document.getElementById('videoPlayerEl')
+  const errorEl = document.getElementById('videoPlayerError')
+  const titleSpan = $('#modalVideoLabel span')
+  titleSpan.text(name || file)
+  titleSpan.attr('title', name || file)
+  errorEl.classList.add('d-none')
+  errorEl.textContent = ''
+  const src = `./api/v1/stream?file=${encodeURIComponent(file)}`
+  videoEl.src = src
+  videoEl.load()
+  videoEl.onerror = function () {
+    errorEl.textContent = 'Video konnte nicht geladen oder abgespielt werden.'
+    errorEl.classList.remove('d-none')
+  }
+}
+
+function showLogFilePlayBtn (file) {
+  if (!file) {
+    logFilePlayBtn.addClass('d-none')
+    return
+  }
+  logFilePlayBtn.data('file', file)
+  logFilePlayBtn.removeClass('d-none')
+}
+
+function showSearchResultsPlayBtn (file) {
+  if (!file) {
+    searchResultsPlayBtn.addClass('d-none')
+    return
+  }
+  searchResultsPlayBtn.data('file', file)
+  searchResultsPlayBtn.removeClass('d-none')
+}
 
 filesResult.on('click', '.delete', function () {
   modalButton = $(this)
