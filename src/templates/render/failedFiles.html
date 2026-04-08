@@ -22,7 +22,7 @@
         </thead>
         <tbody>
         {% for file in data %}
-            <tr>
+            <tr class="{{ 'table-success' if file.get('duration_match') == 'match' else 'table-danger' if file.get('duration_match') == 'mismatch' else '' }}">
                 <td class="col text-break">{{ file['name'] }}</td>
                 <td class="col-1">{{ file['ext'] }}</td>
                 <td class="col-2" data-order="{{ file['update_time'] }}">{{ file['update_time']|timestamp_to_datetime|strftime('%d-%m-%Y %H:%M:%S') }}</td>

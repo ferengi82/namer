@@ -71,12 +71,14 @@ def command_to_file_info(command: Command, config: NamerConfig) -> Dict:
         'size': stat.st_size,
     }
 
-    percentage, phash, oshash, duration = 0.0, '', '', 0
+    percentage, phash, oshash, duration, duration_match = 0.0, '', '', 0, None
     if config and config.write_namer_failed_log and config.add_columns_from_log and sub_path:
         log_data = read_failed_log_file(sub_path, config)
+        scene_duration = None
         if log_data:
             if log_data.results:
                 percentage = max([100 - item.phash_distance * 2.5 if item.phash_distance is not None and item.phash_distance <= 8 else item.name_match for item in log_data.results])
+                scene_duration = log_data.results[0].looked_up.duration
 
             if log_data.fileinfo and log_data.fileinfo.hashes:
                 phash = str(log_data.fileinfo.hashes.phash)
@@ -91,10 +93,14 @@ def command_to_file_info(command: Command, config: NamerConfig) -> Dict:
             except Exception:
                 pass
 
+        if duration and scene_duration:
+            duration_match = 'match' if abs(duration - scene_duration) <= 2 else 'mismatch'
+
     res['percentage'] = percentage
     res['phash'] = phash
     res['oshash'] = oshash
     res['duration'] = duration
+    res['duration_match'] = duration_match
 
     log_time = 0
     if config and config.add_complete_column and config.write_namer_failed_log and sub_path:
