@@ -408,7 +408,14 @@ class NamerConfig:
 
     retry_time: str
     """
-    Time to retry failed items every day.
+    Schedule for retrying failed items. Accepted forms (case-insensitive, local timezone):
+        'HH:MM'              -- daily at HH:MM (24h)
+        'daily HH:MM'        -- explicit alias for the above
+        'weekly HH:MM'       -- weekly on Monday at HH:MM
+        'weekly DAY HH:MM'   -- weekly on the named day (mon|tue|wed|thu|fri|sat|sun)
+        'disabled'           -- never retry; no scheduled job at all
+        ''  (blank)          -- auto-default: random minute in the 3am hour, daily
+    Invalid values fail loudly at startup.
     """
 
     extra_sleep_time: int = 30

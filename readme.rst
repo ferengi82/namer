@@ -61,7 +61,7 @@ How successful at matching videos is this tool?
 
 For data pulled from the internet with rss feeds (which are often in the file format listed below) .... very near perfect.  The author and others have only experienced two mismatches, and those type of failures can never occur again.
 
-If running in a background watchdog mode, files that were failed to match are retried every 24 hours, letting the PornDB_ scrapers catch up with any metadata they may be missing.
+If running in a background watchdog mode, files that failed to match are retried on a configurable schedule (daily by default; weekly or disabled if you prefer — see retry_time_), letting the PornDB_ scrapers catch up with any metadata they may be missing.
 
 Optionally, a log file can be enabled to show the original file name parts, what options were evaluated, and which match was used to name the file, it will be written next to your video file with the same name as the file (with a _namer.log) suffix rather than an mp4/mkv/avi/mov/flv extension.   This is very useful for sanity checking matches, and if ever a mismatch does occur the original file name is available in the log.
 
@@ -150,8 +150,7 @@ The first step in processing is to more the newly appearing directory or file in
 
 Once moved the processing is highly dependant on the namer.cfg file, but in general, the name of video file or the directory file (configured with ``prefer_dir_name_if_available`` flag)
 is parsed and matched with a scene from the PornDB_.   See `For the curious, how is a match made?`_.  If a match cannot be made the general assumption is that the PornDB_ doesn't have metadata for that file yet.
-The file is move to the failed dir fail_dir_ to be retried once a day at a time configured with retry_time_,
-which by default will be a random selected minute in the 3am hour of your timezone.   If enabled_tagging_ flag is set to true then
+The file is moved to the failed dir fail_dir_ to be retried on a schedule configured with retry_time_. By default this is a random minute in the 3am hour of your timezone, daily. The retry_time_ field also accepts ``weekly HH:MM``, ``weekly DAY HH:MM``, or ``disabled`` — see the comments in ``namer.cfg.default`` for the full grammar.   If enabled_tagging_ flag is set to true then
 the metadata (including cover art if enable_poster_ is set) will be embedded in the mp4 file.  Please read the comments in the namer.cfg to find out about genres, tags, performers, etc.
 
 Finally, the file is moved to a location defined by dest_dir_ and new_relative_path_name_.

@@ -4,6 +4,7 @@ to relevant locations after match the file against the theporndb.
 """
 
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -13,7 +14,7 @@ from pathlib import Path
 from platform import system
 from queue import Queue
 from threading import Thread
-from typing import Optional
+from typing import NamedTuple, Optional
 
 import schedule
 from loguru import logger
@@ -95,6 +96,83 @@ def retry_failed(namer_config: NamerConfig):
     for file in gather_target_files_from_dir(namer_config.failed_dir, namer_config):
         target = file.target_directory.name if file.parsed_dir_name and file.target_directory else file.target_movie_file.name
         shutil.move(namer_config.failed_dir / target, namer_config.watch_dir / target)
+
+
+_DAY_ALIASES = {
+    'mon': 'monday', 'monday': 'monday',
+    'tue': 'tuesday', 'tues': 'tuesday', 'tuesday': 'tuesday',
+    'wed': 'wednesday', 'weds': 'wednesday', 'wednesday': 'wednesday',
+    'thu': 'thursday', 'thur': 'thursday', 'thurs': 'thursday', 'thursday': 'thursday',
+    'fri': 'friday', 'friday': 'friday',
+    'sat': 'saturday', 'saturday': 'saturday',
+    'sun': 'sunday', 'sunday': 'sunday',
+}
+_HHMM_RE = re.compile(r'^([01]?\d|2[0-3]):([0-5]\d)$')
+
+
+class RetrySchedule(NamedTuple):
+    mode: str
+    time: Optional[str]
+    day: Optional[str]
+
+
+def parse_retry_time(value: Optional[str]) -> RetrySchedule:
+    """
+    Parse a retry_time config string into a RetrySchedule.
+
+    Accepted forms (case-insensitive, whitespace-tolerant):
+        None / ''           -> disabled (defensive; blank configs are auto-filled earlier)
+        'disabled'          -> disabled
+        'HH:MM'             -> daily at HH:MM
+        'daily HH:MM'       -> daily at HH:MM (explicit)
+        'weekly HH:MM'      -> weekly on Monday at HH:MM
+        'weekly DAY HH:MM'  -> weekly on DAY at HH:MM (DAY = mon|tue|wed|thu|fri|sat|sun, or full name)
+
+    Raises ValueError on anything else.
+    """
+    if value is None:
+        return RetrySchedule('disabled', None, None)
+
+    tokens = value.strip().lower().split()
+    if not tokens:
+        return RetrySchedule('disabled', None, None)
+
+    if len(tokens) == 1:
+        only = tokens[0]
+        if only == 'disabled':
+            return RetrySchedule('disabled', None, None)
+        if _HHMM_RE.match(only):
+            return RetrySchedule('daily', only, None)
+
+    elif tokens[0] == 'daily' and len(tokens) == 2 and _HHMM_RE.match(tokens[1]):
+        return RetrySchedule('daily', tokens[1], None)
+
+    elif tokens[0] == 'weekly':
+        if len(tokens) == 2 and _HHMM_RE.match(tokens[1]):
+            return RetrySchedule('weekly', tokens[1], 'monday')
+        if len(tokens) == 3 and tokens[1] in _DAY_ALIASES and _HHMM_RE.match(tokens[2]):
+            return RetrySchedule('weekly', tokens[2], _DAY_ALIASES[tokens[1]])
+
+    raise ValueError(
+        f"retry_time: cannot parse {value!r}; expected 'HH:MM', 'disabled', "
+        f"'daily HH:MM', 'weekly HH:MM', or 'weekly DAY HH:MM'"
+    )
+
+
+def _schedule_retry(parsed: RetrySchedule, namer_watchdog_config: NamerConfig) -> None:
+    """Register the retry job on the module-global schedule based on the parsed mode."""
+    if parsed.mode == 'disabled':
+        logger.info('retry_time: disabled — no retry job will be scheduled')
+        return
+    if parsed.mode == 'daily':
+        logger.info('retry_time: daily at {}', parsed.time)
+        schedule.every().day.at(parsed.time).do(lambda: retry_failed(namer_watchdog_config))
+        return
+    if parsed.mode == 'weekly':
+        logger.info('retry_time: weekly on {} at {}', parsed.day, parsed.time)
+        weekday_scheduler = getattr(schedule.every(), parsed.day)
+        weekday_scheduler.at(parsed.time).do(lambda: retry_failed(namer_watchdog_config))
+        return
 
 
 def is_fs_case_sensitive():
@@ -346,8 +424,8 @@ def create_watcher(namer_watchdog_config: NamerConfig) -> MovieWatcher:
 
     logger.info('Logged as {name} ({id})'.format(**user))
 
-    if namer_watchdog_config.retry_time:
-        schedule.every().day.at(namer_watchdog_config.retry_time).do(lambda: retry_failed(namer_watchdog_config))
+    schedule.clear()
+    _schedule_retry(parse_retry_time(namer_watchdog_config.retry_time), namer_watchdog_config)
 
     movie_watcher = MovieWatcher(namer_watchdog_config)
 

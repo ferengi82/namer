@@ -13,7 +13,17 @@ from mutagen.mp4 import MP4
 
 from namer.ffmpeg import FFMpeg
 from namer.configuration import NamerConfig
-from namer.watchdog import create_watcher, done_copying, retry_failed, MovieWatcher
+import schedule
+
+from namer.watchdog import (
+    RetrySchedule,
+    _schedule_retry,
+    create_watcher,
+    done_copying,
+    parse_retry_time,
+    retry_failed,
+    MovieWatcher,
+)
 from test import utils
 from test.utils import Wait, new_ea, new_dorcel, validate_mp4_tags, validate_permissions, environment, sample_config, ProcessingTarget
 
@@ -472,6 +482,105 @@ class UnitTestAsTheDefaultExecution(unittest.TestCase):
             self.assertEqual(len(list(config.failed_dir.iterdir())), 0)
             self.assertEqual(len(list(config.watch_dir.iterdir())), 0)
             self.assertTrue(nfo_file.exists() and nfo_file.is_file() and nfo_file.stat().st_size != 0)
+
+
+class RetryTimeParserTest(unittest.TestCase):
+    def test_blank_or_none_is_disabled(self):
+        self.assertEqual(parse_retry_time(None).mode, 'disabled')
+        self.assertEqual(parse_retry_time('').mode, 'disabled')
+        self.assertEqual(parse_retry_time('   ').mode, 'disabled')
+
+    def test_disabled_keyword(self):
+        self.assertEqual(parse_retry_time('disabled'), RetrySchedule('disabled', None, None))
+        self.assertEqual(parse_retry_time('DISABLED'), RetrySchedule('disabled', None, None))
+        self.assertEqual(parse_retry_time('  Disabled  '), RetrySchedule('disabled', None, None))
+
+    def test_bare_hhmm_is_daily(self):
+        self.assertEqual(parse_retry_time('03:42'), RetrySchedule('daily', '03:42', None))
+        self.assertEqual(parse_retry_time('00:00'), RetrySchedule('daily', '00:00', None))
+        self.assertEqual(parse_retry_time('23:59'), RetrySchedule('daily', '23:59', None))
+        self.assertEqual(parse_retry_time('9:05'), RetrySchedule('daily', '9:05', None))
+
+    def test_explicit_daily(self):
+        self.assertEqual(parse_retry_time('daily 03:42'), RetrySchedule('daily', '03:42', None))
+        self.assertEqual(parse_retry_time('  Daily   03:42  '), RetrySchedule('daily', '03:42', None))
+
+    def test_weekly_default_day_is_monday(self):
+        self.assertEqual(parse_retry_time('weekly 04:15'), RetrySchedule('weekly', '04:15', 'monday'))
+        self.assertEqual(parse_retry_time('WEEKLY 04:15'), RetrySchedule('weekly', '04:15', 'monday'))
+
+    def test_weekly_with_named_day(self):
+        cases = [
+            ('mon', 'monday'),
+            ('Monday', 'monday'),
+            ('tue', 'tuesday'),
+            ('WED', 'wednesday'),
+            ('weds', 'wednesday'),
+            ('thu', 'thursday'),
+            ('thurs', 'thursday'),
+            ('FRI', 'friday'),
+            ('sat', 'saturday'),
+            ('sun', 'sunday'),
+            ('sunday', 'sunday'),
+        ]
+        for token, canonical in cases:
+            self.assertEqual(
+                parse_retry_time(f'weekly {token} 04:15'),
+                RetrySchedule('weekly', '04:15', canonical),
+                msg=f'failed for weekly {token} 04:15',
+            )
+
+    def test_invalid_raises(self):
+        bad_values = [
+            'nonsense', '25:00', '03:60', 'weekly funday 03:00',
+            'weekly 03:00 monday', 'daily', 'weekly', '3:42pm',
+            'every monday at 3', 'monthly 03:00', 'disabled 03:00',
+            '03:42 daily', '03', ':42', 'daily weekly 03:00',
+        ]
+        for bad in bad_values:
+            with self.assertRaises(ValueError, msg=f'should reject {bad!r}'):
+                parse_retry_time(bad)
+
+
+class RetryTimeWiringTest(unittest.TestCase):
+    def setUp(self):
+        schedule.clear()
+
+    def tearDown(self):
+        schedule.clear()
+
+    def test_daily_creates_daily_job(self):
+        _schedule_retry(parse_retry_time('03:42'), sample_config())
+        self.assertEqual(len(schedule.jobs), 1)
+        job = schedule.jobs[0]
+        self.assertEqual(job.unit, 'days')
+        self.assertEqual(job.interval, 1)
+        self.assertIsNone(job.start_day)
+        self.assertEqual(job.at_time.hour, 3)
+        self.assertEqual(job.at_time.minute, 42)
+
+    def test_disabled_creates_no_job(self):
+        _schedule_retry(parse_retry_time('disabled'), sample_config())
+        self.assertEqual(schedule.jobs, [])
+
+    def test_weekly_default_monday(self):
+        _schedule_retry(parse_retry_time('weekly 04:15'), sample_config())
+        self.assertEqual(len(schedule.jobs), 1)
+        job = schedule.jobs[0]
+        self.assertEqual(job.unit, 'weeks')
+        self.assertEqual(job.interval, 1)
+        self.assertEqual(job.start_day, 'monday')
+        self.assertEqual(job.at_time.hour, 4)
+        self.assertEqual(job.at_time.minute, 15)
+
+    def test_weekly_named_day(self):
+        _schedule_retry(parse_retry_time('weekly wednesday 23:00'), sample_config())
+        self.assertEqual(len(schedule.jobs), 1)
+        job = schedule.jobs[0]
+        self.assertEqual(job.unit, 'weeks')
+        self.assertEqual(job.start_day, 'wednesday')
+        self.assertEqual(job.at_time.hour, 23)
+        self.assertEqual(job.at_time.minute, 0)
 
 
 if __name__ == '__main__':

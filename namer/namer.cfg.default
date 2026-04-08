@@ -273,7 +273,14 @@ failed_dir = ./test/failed
 # dir where finalized files get written.
 dest_dir = ./test/dest
 
-# When to retry failed items, default is a random minute during the 3 am hour in your timezone.
+# When to retry failed items in the failed_dir.
+# Accepted forms (case-insensitive, local timezone):
+#   HH:MM              - daily at HH:MM (e.g. 03:42)
+#   daily HH:MM        - same as above, explicit
+#   weekly HH:MM       - once a week on Monday at HH:MM
+#   weekly DAY HH:MM   - once a week on the named day (mon|tue|wed|thu|fri|sat|sun)
+#   disabled           - never retry (no scheduled job)
+# Leave blank to auto-default to a random minute during the 3am hour, daily.
 retry_time =
 
 # Run webserver while running watchdog.
