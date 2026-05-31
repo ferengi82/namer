@@ -7,6 +7,10 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -147,7 +151,15 @@ jobs:
         with:
           submodules: true
 
-      - run: ./docker_build.sh
+      - name: Login to GHCR
+        if: ${{ github.event_name != 'pull_request' }}
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Build and optionally push Docker image
+        env:
+          IMAGE_REPO: ferengi82/namer
+          PUSH_IMAGE: ${{ github.event_name != 'pull_request' && 'true' || 'false' }}
+        run: ./docker_build.sh
 
   auto-tag:
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main'}}
