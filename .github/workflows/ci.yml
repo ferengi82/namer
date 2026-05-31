@@ -127,13 +127,17 @@ jobs:
       - name: Run coverage
         run: poetry run coverage xml
 
-      - uses: codecov/codecov-action@v4
+      - name: Upload coverage to Codecov
+        if: ${{ env.CODECOV_TOKEN !=  }}
+        uses: codecov/codecov-action@v4
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
           files: ./coverage.xml
           name: unittest
           fail_ci_if_error: true
           verbose: true
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ env.CODECOV_TOKEN }}
 
   dockerbuild:
     runs-on: ubuntu-latest
